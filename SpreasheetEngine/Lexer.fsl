@@ -1,0 +1,28 @@
+﻿{
+open FSharp.Text.Lexing
+open System
+open SpreadsheetParser
+
+
+let lexeme = LexBuffer<_>.LexemeString
+}
+
+let whitespace = [' ' '\t' '\r' '\n']+
+let number = ['0'-'9']+('.'['0'-'9']+)?
+let cellname = ['A'-'Z''a'-'z']['0'-'9']+
+
+rule token = parse
+    | whitespace { token lexbuf }  // Ignore whitespace
+    | number { NUMBER(float (lexeme lexbuf)) }
+    | cellname { CELLNAME(lexeme lexbuf) }
+    | "=" { ASSIGN }
+    | "del" { REMOVE }
+    | "eval" { EVAL }
+    | '+' { PLUS }
+    | '-' { MINUS }
+    | '*' { TIMES }
+    | '/' { DIVIDE }
+    | '(' { LPAREN }
+    | ')' { RPAREN }
+    | eof { EOF }
+    | _ { failwithf "Unexpected character" }

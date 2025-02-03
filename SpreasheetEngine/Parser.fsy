@@ -1,0 +1,38 @@
+﻿
+%{
+open Lang
+%}
+
+%token <float> NUMBER
+%token <string> CELLNAME
+%token ASSIGN REMOVE EVAL PLUS MINUS TIMES DIVIDE LPAREN RPAREN
+%token EOF
+
+%left PLUS MINUS
+%left TIMES DIVIDE
+%right UMINUS
+
+%start statement
+
+%type <Expr> expr
+%type <Statement> statement
+
+%%
+
+statement:
+    | CELLNAME ASSIGN expr  { Assign($1, $3) }
+    | REMOVE CELLNAME       { Remove($2) }
+    | EVAL CELLNAME         { Eval($2) }
+    | CELLNAME              { Eval($1) }
+    ;
+
+expr:
+    | expr PLUS expr            { Add($1, $3) }
+    | expr MINUS expr           { Sub($1, $3) }
+    | expr TIMES expr           { Mul($1, $3) }
+    | expr DIVIDE expr          { Div($1, $3) }
+    | MINUS expr %prec UMINUS   { Sub(Number 0.0, $2) }
+    | LPAREN expr RPAREN        { $2 }
+    | NUMBER                    { Number $1 }
+    | CELLNAME                  { Cell $1 }
+    ;

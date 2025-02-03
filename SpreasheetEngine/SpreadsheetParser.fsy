@@ -1,0 +1,42 @@
+﻿%{
+open SpreadsheetLexer
+module SpreadsheetParser
+
+type Expr =
+    | Number of float
+    | Cell of string
+    | Add of Expr * Expr
+    | Sub of Expr * Expr
+    | Mul of Expr * Expr
+    | Div of Expr * Expr
+%}
+
+%token <float> NUMBER
+%token <string> CELLNAME
+%token ASSIGN PLUS MINUS TIMES DIVIDE LPAREN RPAREN
+%token EOF
+
+%left PLUS MINUS
+%left TIMES DIVIDE
+%right UMINUS
+
+%start statement
+%type <string * Expr> statement
+%type <Expr> expr
+
+%%  
+
+statement:
+    | CELLNAME ASSIGN expr { ($1, $3) }
+    ;
+
+expr:
+    | expr PLUS expr   { Add($1, $3) }
+    | expr MINUS expr  { Sub($1, $3) }
+    | expr TIMES expr  { Mul($1, $3) }
+    | expr DIVIDE expr { Div($1, $3) }
+    | MINUS expr %prec UMINUS { Sub(Number 0.0, $1) }
+    | LPAREN expr RPAREN   { $1 }
+    | NUMBER               { Number $1 }
+    | CELLNAME             { Cell $1 }
+    ;
