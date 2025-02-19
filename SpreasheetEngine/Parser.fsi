@@ -11,7 +11,9 @@ type token =
   | DIVIDE
   | LPAREN
   | RPAREN
+  | COLON
   | CELLNAME of (string)
+  | TEXT of (string)
   | NUMBER of (float)
 type tokenId = 
     | TOKEN_EOF
@@ -24,7 +26,9 @@ type tokenId =
     | TOKEN_DIVIDE
     | TOKEN_LPAREN
     | TOKEN_RPAREN
+    | TOKEN_COLON
     | TOKEN_CELLNAME
+    | TOKEN_TEXT
     | TOKEN_NUMBER
     | TOKEN_end_of_input
     | TOKEN_error

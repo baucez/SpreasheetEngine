@@ -5,10 +5,12 @@
     <TargetFramework>net8.0</TargetFramework>
     <FsLexToolExe>fslex.dll</FsLexToolExe>
     <FsYaccToolExe>fsyacc.dll</FsYaccToolExe>
+    <LangVersion>preview</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Lang.fs" />
+    <Compile Include="Functions.fs" />
+    <Compile Include="LangTypes.fs" />
     <FsYacc Include="Parser.fsy">
       <OtherFlags>--module SpreadsheetParser</OtherFlags>
     </FsYacc>

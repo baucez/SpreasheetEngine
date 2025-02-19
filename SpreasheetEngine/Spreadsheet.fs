@@ -1,28 +1,45 @@
 ﻿module SpreadsheetEngine
 
 open System.Collections.Generic
-open Lang
+open LangTypes
 
 type Spreadsheet() =
-    let cellValues = Dictionary<string, float>()
+    let cellValues = Dictionary<string, Value>()
     let cellFormulas = Dictionary<string, Expr>()
     let dependencies = Dictionary<string, HashSet<string>>()
     let dependents = Dictionary<string, HashSet<string>>()
 
     /// Evaluates an expression recursively
-    let rec eval expr =
+    let rec eval (expr: Expr) : Value =
         match expr with
-        | Number n -> n
+        | Value v -> match v with
+                     | Number n -> Number n
+                     | Text t -> Text t
+                     | Error e -> Error e
         | Cell name ->
             if cellValues.ContainsKey(name) then cellValues.[name]
-            else failwithf "Cell %s is not defined" name
-        | Add (l, r) -> eval l + eval r
-        | Sub (l, r) -> eval l - eval r
-        | Mul (l, r) -> eval l * eval r
+            else Error 1 //failwithf "Cell %s is not defined" name
+
+        | Add (l, r) -> 
+            match eval l, eval r with
+            | Number nl, Number nr -> Number (nl + nr)
+            | _ -> Error 2 // Indicating invalid addition operation
+        | Sub (l, r) -> 
+            match eval l, eval r with
+            | Number nl, Number nr -> Number (nl - nr)
+            | _ -> Error 2 // Indicating invalid addition operation
+        | Mul (l, r) ->
+            (match eval l, eval r with
+            | Number nl, Number nr -> Number (nl * nr)
+            | _ -> Error 2 // Indicating invalid addition operation
+            )
         | Div (l, r) ->
-            let right = eval r
-            if right = 0.0 then failwith "Division by zero"
-            eval l / right
+            (match eval l, eval r with
+            | Number nl, Number nr -> if nr = 0.0 then Error 3
+                                      else Number (nl / nr)
+            | _ -> Error 2 // Indicating invalid addition operation
+            )
+        | _ -> Error 5
 
     /// Evaluate a cell
     let evalCell cellName =
@@ -30,7 +47,10 @@ type Spreadsheet() =
             try
                 let value = eval cellFormulas.[cellName]
                 cellValues.[cellName] <- value
-                printfn "%s = %f" cellName value
+                match value with
+                | Number n  -> printfn "%s = %f" cellName n
+                | Text t    -> printfn "%s = \"%s\"" cellName t
+                | Error e   -> printfn "%s = ERROR(%d)" cellName e
             with
                 Failure msg -> printfn "%s Error" cellName
         else
@@ -54,8 +74,12 @@ type Spreadsheet() =
             | Add (l, r) | Sub (l, r) | Mul (l, r) | Div (l, r) ->
                 findDependencies l
                 findDependencies r
+            | Function (_, args) -> 
+                for arg in args do
+                    findDependencies arg
             | _ -> ()
         findDependencies expr
+        //TODO Add cylce detection
 
     /// Recalculates all dependent cells recursively
     let rec updateDependents cell =
@@ -63,7 +87,6 @@ type Spreadsheet() =
             for dep in dependents.[cell] do
                 evalCell dep
                 updateDependents dep
-
 
     /// Assigns an expression to a cell and updates dependents
     member this.SetCell(name: string, expr: Expr) =
@@ -77,7 +100,6 @@ type Spreadsheet() =
         if cellValues.ContainsKey(name) then Some cellValues.[name]
         else None
 
-
     /// Remove a cell
     member this.RemoveCell(cellName: string) =
         cellValues.Remove cellName |> ignore
@@ -85,6 +107,7 @@ type Spreadsheet() =
         dependencies.Remove cellName |> ignore
         updateDependents cellName
 
+    /// Evaluate a statement
     member this.EvaluateStatement(statement: Statement) =
         match statement with
         | Assign(cellName, expr) -> this.SetCell(cellName, expr)
